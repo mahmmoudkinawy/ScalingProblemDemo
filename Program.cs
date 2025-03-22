@@ -13,10 +13,15 @@ builder.Services.AddControllersWithViews();
     var redis = ConnectionMultiplexer.Connect(redisConnection);
     var redisDb = redis.GetDatabase();
 
+    //builder
+    //    .Services.AddDataProtection()
+    //    .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
+    //    .SetApplicationName("MyApp");
+
     builder
         .Services.AddDataProtection()
         .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
-        .SetApplicationName("MyApp");
+        .SetApplicationName("MyWebMVCApp");
 
     builder
         .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
