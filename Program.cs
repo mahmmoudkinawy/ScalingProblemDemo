@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +8,14 @@ builder.Services.AddControllersWithViews();
 
 
 {
+    var redisConnection = builder.Configuration["REDIS_CONNECTION"] ?? "localhost:6379";
+    var redis = ConnectionMultiplexer.Connect(redisConnection);
+
+    builder
+        .Services.AddDataProtection()
+        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
+        .SetApplicationName("MyApp");
+
     builder
         .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
         .AddCookie(
@@ -27,7 +37,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthentication();
