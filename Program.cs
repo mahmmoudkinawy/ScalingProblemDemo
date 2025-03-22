@@ -10,17 +10,14 @@ builder.Services.AddControllersWithViews();
 {
     var redisConnection = builder.Configuration["REDIS_CONNECTION"] ?? "localhost:6379";
     var redis = ConnectionMultiplexer.Connect(redisConnection);
-    var redisDb = redis.GetDatabase();
 
-    //builder
-    //    .Services.AddDataProtection()
-    //    .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
-    //    .SetApplicationName("MyApp");
+    // Register in DI
+    builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
     builder
         .Services.AddDataProtection()
-        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
-        .SetApplicationName("MyApp");
+        .SetApplicationName("MyApp")
+        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
 
     builder
         .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
