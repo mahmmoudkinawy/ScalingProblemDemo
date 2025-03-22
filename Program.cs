@@ -31,6 +31,32 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
+app.Use(
+    async (context, next) =>
+    {
+        var cookie = context.Request.Cookies[".AspNetCore.Cookies"];
+        if (!string.IsNullOrEmpty(cookie))
+        {
+            var dataProtector = context
+                .RequestServices.GetRequiredService<IDataProtectionProvider>()
+                .CreateProtector(
+                    "Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationMiddleware"
+                );
+
+            try
+            {
+                var decryptedValue = dataProtector.Unprotect(cookie);
+                Console.WriteLine("Decrypted Cookie: " + decryptedValue);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Failed to decrypt: " + ex.Message);
+            }
+        }
+        await next();
+    }
+);
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
