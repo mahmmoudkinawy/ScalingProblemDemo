@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using StackExchange.Redis;
@@ -21,54 +20,65 @@ builder.Services.AddControllersWithViews();
     builder
         .Services.AddDataProtection()
         .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
-        .SetApplicationName("MyWebMVCApp");
+        .SetApplicationName("MyApp");
 
     builder
         .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-        .AddCookie(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            options =>
-            {
-                options.Events.OnSignedIn = async context =>
-                {
-                    var sessionId = Guid.NewGuid().ToString();
-                    var userId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        .AddCookie(options =>
+        {
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.LoginPath = "/account/login";
+            options.AccessDeniedPath = "/account/accessdenied";
+        });
 
-                    if (!string.IsNullOrEmpty(userId))
-                    {
-                        await redisDb.StringSetAsync(
-                            $"session:{sessionId}",
-                            userId,
-                            TimeSpan.FromHours(1)
-                        );
+    //builder
+    //    .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    //    .AddCookie(
+    //        CookieAuthenticationDefaults.AuthenticationScheme,
+    //        options =>
+    //        {
+    //            options.Events.OnSignedIn = async context =>
+    //            {
+    //                var sessionId = Guid.NewGuid().ToString();
+    //                var userId = context.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                        var claimsIdentity = (ClaimsIdentity)context.Principal.Identity;
-                        claimsIdentity.AddClaim(new Claim("SessionId", sessionId));
-                    }
-                };
+    //                if (!string.IsNullOrEmpty(userId))
+    //                {
+    //                    await redisDb.StringSetAsync(
+    //                        $"session:{sessionId}",
+    //                        userId,
+    //                        TimeSpan.FromHours(1)
+    //                    );
 
-                options.Events.OnValidatePrincipal = async context =>
-                {
-                    var sessionId = context.Principal.FindFirst("SessionId")?.Value;
-                    if (string.IsNullOrEmpty(sessionId))
-                    {
-                        context.RejectPrincipal(); // Force re-login
-                        return;
-                    }
+    //                    var claimsIdentity = (ClaimsIdentity)context.Principal.Identity;
+    //                    claimsIdentity.AddClaim(new Claim("SessionId", sessionId));
+    //                }
+    //            };
 
-                    // Check if session exists in Redis
-                    var userId = await redisDb.StringGetAsync($"session:{sessionId}");
-                    if (userId.IsNullOrEmpty)
-                    {
-                        context.RejectPrincipal(); // Session expired, force logout
-                    }
-                };
+    //            options.Events.OnValidatePrincipal = async context =>
+    //            {
+    //                var sessionId = context.Principal.FindFirst("SessionId")?.Value;
+    //                if (string.IsNullOrEmpty(sessionId))
+    //                {
+    //                    context.RejectPrincipal(); // Force re-login
+    //                    return;
+    //                }
 
-                //options.LoginPath = "/Account/Login";
-                //options.AccessDeniedPath = "/Account/AccessDenied";
-                //options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-            }
-        );
+    //                // Check if session exists in Redis
+    //                var userId = await redisDb.StringGetAsync($"session:{sessionId}");
+    //                if (userId.IsNullOrEmpty)
+    //                {
+    //                    context.RejectPrincipal(); // Session expired, force logout
+    //                }
+    //            };
+
+    //            //options.LoginPath = "/Account/Login";
+    //            //options.AccessDeniedPath = "/Account/AccessDenied";
+    //            //options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    //        }
+    //    );
 }
 
 var app = builder.Build();
