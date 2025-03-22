@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,8 +17,9 @@ builder.Services.AddControllersWithViews();
 
     builder
         .Services.AddDataProtection()
-        .SetApplicationName("MyApp")
-        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
+        .SetApplicationName("MyApp") // MUST BE THE SAME ACROSS INSTANCES
+        .SetDefaultKeyLifetime(TimeSpan.FromDays(90)); // Prevents premature key expiration
 
     builder
         .Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -79,6 +81,12 @@ builder.Services.AddControllersWithViews();
 }
 
 var app = builder.Build();
+
+var keyManager = app.Services.GetRequiredService<IKeyManager>();
+foreach (var key in keyManager.GetAllKeys())
+{
+    Console.WriteLine($"KeyId: {key.KeyId}, Created: {key.CreationDate}");
+}
 
 if (!app.Environment.IsDevelopment())
 {
