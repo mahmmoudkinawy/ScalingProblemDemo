@@ -2,10 +2,11 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using StackExchange.Redis;
 
 namespace ScalingProblemDemo.Controllers;
 
-public class AccountController : Controller
+public class AccountController(IConfiguration configuration) : Controller
 {
     [HttpGet]
     public IActionResult Login() => View();
@@ -35,6 +36,15 @@ public class AccountController : Controller
 
     public async Task<IActionResult> Logout()
     {
+        var sessionId = User.FindFirst("SessionId")?.Value;
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            var redisDb = ConnectionMultiplexer
+                .Connect(configuration["REDIS_CONNECTION"] ?? "localhost:6379")
+                .GetDatabase();
+            await redisDb.KeyDeleteAsync($"session:{sessionId}");
+        }
+
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Login");
     }
